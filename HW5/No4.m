@@ -1,0 +1,63 @@
+wp1 = 0.35*pi;
+ws1 = 0.4*pi; 
+ws2 = 0.55*pi; 
+wp2 = 0.6*pi;
+Rp = 1.0; 
+As = 45;
+delta1 = (10^(Rp/20)-1)/(10^(Rp/20)+1);
+delta2 = (1+delta1)*(10^(-As/20));
+weights = [delta2/delta1 1 delta2/delta1];
+delta_f = min((wp2-ws2)/(2*pi), (ws1-wp1)/(2*pi));
+M = ceil((-20*log10(sqrt(delta1*delta2))-13)/(14.6*delta_f)+1);
+f = [0 wp1/pi ws1/pi ws2/pi wp2/pi 1];
+m = [1 1 0 0 1 1];
+deltaW = pi/500;
+Asd = 0;
+
+%While loop to increase M everytime Asd < As
+while(Asd < As)
+h = remez(M-1,f,m,weights);
+[db, mag,pha,grd,w] = freqz_m(h,1);
+ws1i = floor(ws1/deltaW)+1; 
+wp1i = floor(wp1/deltaW)+1;
+ws2i = floor(ws2/deltaW)+1; 
+wp2i = floor(wp2/deltaW)+1;
+Asd = -max(db(ws1i:ws2i));
+M = M+2;
+end
+%Decrease M for final answer
+M = M-2;
+[db1, mag,pha,grd,w2] = freqz_m(h,1);
+Asd = -max(db(ws1i:ws2i)); 
+n = 0:1:M-1;
+%Type 1 function;
+[Hr,w,c,L] = Ampl_res(h);
+figure;
+subplot(4,1,1);
+stem(n,h);
+axis([0, 60 , -0.3,1]);
+xlabel('n');
+ylabel('h(n)');
+title('Impulse response');
+subplot(4,1,2);
+plot(w2/pi,db1);
+axis([0 ,1, -80, 20]);
+xlabel('w/pi');
+ylabel('dB');
+title('Magnitude response');
+subplot(4,1,3);
+plot(w/pi,Hr);
+axis([0, 1 , 0,1.2]);
+xlabel('w/pi');
+ylabel('Hr(w)');
+title('Amplitude response');
+passBandw1 = w(1:wp1i+1)/pi;
+passBande1 = Hr(1:wp1i+1)-1;
+passBandw2 = w(wp2i:501)/pi;
+passBande2 = Hr(wp2i:501)-1;
+stopBandw = w(ws1i+1:ws2i)/pi;
+stopBande = Hr(ws1i+1:ws2i);
+subplot(4,1,4);
+plot(passBandw1,passBande1,stopBandw,stopBande,passBandw2,passBande2);
+axis([0, 1 , -0.1,0.1]);
+title('Error Response');
